@@ -17,4 +17,8 @@ class Get_Scalar:
 def consistency_loss(logits_w1, logits_w2):
     logits_w2 = logits_w2.detach()
     assert logits_w1.size() == logits_w2.size()
-    return F.mse_loss(torch.softmax(logits_w1, dim=-1), torch.softmax(logits_w2, dim=-1), reduction='mean')
+    return F.mse_loss(
+        torch.softmax(logits_w1, dim=-1),
+        torch.softmax(logits_w2, dim=-1),
+        reduction="mean",
+    )

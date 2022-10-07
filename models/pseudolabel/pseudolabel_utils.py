@@ -19,10 +19,18 @@ def consistency_loss(logits_w, class_acc, it, ds, p_cutoff, use_flex=False):
     pseudo_label = torch.softmax(logits_w, dim=-1)
     max_probs, max_idx = torch.max(pseudo_label, dim=-1)
     if use_flex:
-        mask = max_probs.ge(p_cutoff * (class_acc[max_idx] / (2. - class_acc[max_idx]))).float()
+        mask = max_probs.ge(
+            p_cutoff * (class_acc[max_idx] / (2.0 - class_acc[max_idx]))
+        ).float()
     else:
         mask = max_probs.ge(p_cutoff).float()
     select = max_probs.ge(p_cutoff).long()
 
-    return (ce_loss(logits_w, max_idx.detach(), use_hard_labels=True,
-                    reduction='none') * mask).mean(), select, max_idx.long()
+    return (
+        (
+            ce_loss(logits_w, max_idx.detach(), use_hard_labels=True, reduction="none")
+            * mask
+        ).mean(),
+        select,
+        max_idx.long(),
+    )

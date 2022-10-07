@@ -17,16 +17,19 @@ class BasicDataset(Dataset):
     and return both weakly and strongly augmented images.
     """
 
-    def __init__(self,
-                 alg,
-                 data,
-                 targets=None,
-                 num_classes=None,
-                 transform=None,
-                 is_ulb=False,
-                 strong_transform=None,
-                 onehot=False,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        alg,
+        data,
+        targets=None,
+        num_classes=None,
+        transform=None,
+        is_ulb=False,
+        strong_transform=None,
+        onehot=False,
+        *args,
+        **kwargs
+    ):
         """
         Args
             data: x_data
@@ -67,7 +70,9 @@ class BasicDataset(Dataset):
             target = None
         else:
             target_ = self.targets[idx]
-            target = target_ if not self.onehot else get_onehot(self.num_classes, target_)
+            target = (
+                target_ if not self.onehot else get_onehot(self.num_classes, target_)
+            )
 
         # set augmented images
 
@@ -81,30 +86,39 @@ class BasicDataset(Dataset):
             if not self.is_ulb:
                 return idx, img_w, target
             else:
-                if self.alg == 'fixmatch':
+                if self.alg == "fixmatch":
                     return idx, img_w, self.strong_transform(img)
-                elif self.alg == 'flexmatch':
+                elif self.alg == "flexmatch":
                     return idx, img_w, self.strong_transform(img)
-                elif self.alg == 'pimodel':
+                elif self.alg == "pimodel":
                     return idx, img_w, self.transform(img)
-                elif self.alg == 'pseudolabel':
+                elif self.alg == "pseudolabel":
                     return idx, img_w
-                elif self.alg == 'vat':
+                elif self.alg == "vat":
                     return idx, img_w
-                elif self.alg == 'meanteacher':
+                elif self.alg == "meanteacher":
                     return idx, img_w, self.transform(img)
-                elif self.alg == 'uda':
+                elif self.alg == "uda":
                     return idx, img_w, self.strong_transform(img)
-                elif self.alg == 'mixmatch':
+                elif self.alg == "mixmatch":
                     return idx, img_w, self.transform(img)
-                elif self.alg == 'remixmatch':
+                elif self.alg == "remixmatch":
                     rotate_v_list = [0, 90, 180, 270]
                     rotate_v1 = np.random.choice(rotate_v_list, 1).item()
                     img_s1 = self.strong_transform(img)
-                    img_s1_rot = torchvision.transforms.functional.rotate(img_s1, rotate_v1)
+                    img_s1_rot = torchvision.transforms.functional.rotate(
+                        img_s1, rotate_v1
+                    )
                     img_s2 = self.strong_transform(img)
-                    return idx, img_w, img_s1, img_s2, img_s1_rot, rotate_v_list.index(rotate_v1)
-                elif self.alg == 'fullysupervised':
+                    return (
+                        idx,
+                        img_w,
+                        img_s1,
+                        img_s2,
+                        img_s1_rot,
+                        rotate_v_list.index(rotate_v1),
+                    )
+                elif self.alg == "fullysupervised":
                     return idx
 
     def __len__(self):

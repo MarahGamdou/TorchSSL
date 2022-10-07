@@ -21,8 +21,7 @@ def one_hot(targets, nClass, gpu):
 
 
 def mixup_one_target(x, y, gpu, alpha=1.0, is_bias=False):
-    """Returns mixed inputs, mixed targets, and lambda
-    """
+    """Returns mixed inputs, mixed targets, and lambda"""
     if alpha > 0:
         lam = np.random.beta(alpha, alpha)
     else:
@@ -38,4 +37,4 @@ def mixup_one_target(x, y, gpu, alpha=1.0, is_bias=False):
 
 
 def consistency_loss(logits_w, y):
-    return F.mse_loss(torch.softmax(logits_w, dim=-1), y, reduction='mean')
+    return F.mse_loss(torch.softmax(logits_w, dim=-1), y, reduction="mean")

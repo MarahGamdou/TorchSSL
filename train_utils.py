@@ -12,9 +12,9 @@ from torch.optim.optimizer import Optimizer, required
 import copy
 from custom_writer import CustomWriter
 
-'''
+"""
 We reimplement SGD to keep cosistent with the origin paper. But we actually do not use it. You can use it if you want.
-'''
+"""
 
 
 class SGD(Optimizer):
@@ -67,8 +67,15 @@ class SGD(Optimizer):
         The Nesterov version is analogously modified.
     """
 
-    def __init__(self, params, lr=required, momentum=0, dampening=0,
-                 weight_decay=0, nesterov=False):
+    def __init__(
+        self,
+        params,
+        lr=required,
+        momentum=0,
+        dampening=0,
+        weight_decay=0,
+        nesterov=False,
+    ):
         if lr is not required and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
@@ -76,8 +83,13 @@ class SGD(Optimizer):
         if weight_decay < 0.0:
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
-        defaults = dict(lr=lr, momentum=momentum, dampening=dampening,
-                        weight_decay=weight_decay, nesterov=nesterov)
+        defaults = dict(
+            lr=lr,
+            momentum=momentum,
+            dampening=dampening,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
+        )
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
         super(SGD, self).__init__(params, defaults)
@@ -85,7 +97,7 @@ class SGD(Optimizer):
     def __setstate__(self, state):
         super(SGD, self).__setstate__(state)
         for group in self.param_groups:
-            group.setdefault('nesterov', False)
+            group.setdefault("nesterov", False)
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -101,24 +113,24 @@ class SGD(Optimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            weight_decay = group['weight_decay']
-            momentum = group['momentum']
-            dampening = group['dampening']
-            nesterov = group['nesterov']
+            weight_decay = group["weight_decay"]
+            momentum = group["momentum"]
+            dampening = group["dampening"]
+            nesterov = group["nesterov"]
 
-            for p in group['params']:
+            for p in group["params"]:
                 if p.grad is None:
                     continue
                 d_p = p.grad
                 if weight_decay != 0:
                     d_p = d_p.add(p, alpha=weight_decay)
-                d_p.mul_(group['lr'])
+                d_p.mul_(group["lr"])
                 if momentum != 0:
                     param_state = self.state[p]
-                    if 'momentum_buffer' not in param_state:
-                        buf = param_state['momentum_buffer'] = torch.clone(d_p).detach()
+                    if "momentum_buffer" not in param_state:
+                        buf = param_state["momentum_buffer"] = torch.clone(d_p).detach()
                     else:
-                        buf = param_state['momentum_buffer']
+                        buf = param_state["momentum_buffer"]
                         buf.mul_(momentum).add_(d_p, alpha=1 - dampening)
                     if nesterov:
                         d_p = d_p.add(buf, alpha=momentum)
@@ -152,7 +164,7 @@ class TBLog:
             suffix: If not None, the update key has the suffix.
         """
         if suffix is None:
-            suffix = ''
+            suffix = ""
         if self.use_tensorboard:
             for key, value in tb_dict.items():
                 self.writer.add_scalar(suffix + key, value, it)
@@ -188,74 +200,93 @@ class AverageMeter(object):
 def wd_loss(net):
     loss = 0
     for name, param in net.named_parameters():
-        if ('bn' in name or 'bias' in name):
+        if "bn" in name or "bias" in name:
             continue
-        elif ('weight' in name):
-            loss = loss + torch.sum(param ** 2) / 2
+        elif "weight" in name:
+            loss = loss + torch.sum(param**2) / 2
     return loss
 
 
-def get_optimizer(net, optim_name='SGD', lr=0.1, momentum=0.9, weight_decay=0, nesterov=True, bn_wd_skip=True):
-    '''
+def get_optimizer(
+    net,
+    optim_name="SGD",
+    lr=0.1,
+    momentum=0.9,
+    weight_decay=0,
+    nesterov=True,
+    bn_wd_skip=True,
+):
+    """
     return optimizer (name) in torch.optim.
     If bn_wd_skip, the optimizer does not apply
     weight decay regularization on parameters in batch normalization.
-    '''
+    """
 
     decay = []
     no_decay = []
     for name, param in net.named_parameters():
-        if ('bn' in name or 'bias' in name) and bn_wd_skip:
+        if ("bn" in name or "bias" in name) and bn_wd_skip:
             no_decay.append(param)
         else:
             decay.append(param)
 
-    per_param_args = [{'params': decay},
-                      {'params': no_decay, 'weight_decay': 0.0}]
+    per_param_args = [{"params": decay}, {"params": no_decay, "weight_decay": 0.0}]
 
-    if optim_name == 'SGD':
-        optimizer = torch.optim.SGD(per_param_args, lr=lr, momentum=momentum, weight_decay=weight_decay,
-                                    nesterov=nesterov)
-    elif optim_name == 'AdamW':
+    if optim_name == "SGD":
+        optimizer = torch.optim.SGD(
+            per_param_args,
+            lr=lr,
+            momentum=momentum,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
+        )
+    elif optim_name == "AdamW":
         optimizer = torch.optim.AdamW(per_param_args, lr=lr, weight_decay=weight_decay)
     return optimizer
 
 
-def get_cosine_schedule_with_warmup(optimizer,
-                                    num_training_steps,
-                                    num_cycles=7. / 16.,
-                                    num_warmup_steps=0,
-                                    last_epoch=-1):
-    '''
+def get_cosine_schedule_with_warmup(
+    optimizer,
+    num_training_steps,
+    num_cycles=7.0 / 16.0,
+    num_warmup_steps=0,
+    last_epoch=-1,
+):
+    """
     Get cosine scheduler (LambdaLR).
     if warmup is needed, set num_warmup_steps (int) > 0.
-    '''
+    """
 
     def _lr_lambda(current_step):
-        '''
+        """
         _lr_lambda returns a multiplicative factor given an interger parameter epochs.
         Decaying criteria: last_epoch
-        '''
+        """
 
         if current_step < num_warmup_steps:
             _lr = float(current_step) / float(max(1, num_warmup_steps))
         else:
             num_cos_steps = float(current_step - num_warmup_steps)
-            num_cos_steps = num_cos_steps / float(max(1, num_training_steps - num_warmup_steps))
+            num_cos_steps = num_cos_steps / float(
+                max(1, num_training_steps - num_warmup_steps)
+            )
             _lr = max(0.0, math.cos(math.pi * num_cycles * num_cos_steps))
         return _lr
 
     return LambdaLR(optimizer, _lr_lambda, last_epoch)
+
 
 def get_imagenet_schedule(optimizer, num_training_steps, num_labels, batch_size):
     def iter2epoch(iter):
         iter_per_ep = num_labels // batch_size
         ep = iter // iter_per_ep
         return ep
+
     def epoch2iter(epoch):
         iter_per_ep = num_labels // batch_size
         iter = epoch * iter_per_ep
         return iter
+
     def _lr_lambda(iter):
         return None
 
@@ -263,12 +294,12 @@ def get_imagenet_schedule(optimizer, num_training_steps, num_labels, batch_size)
 def accuracy(output, target, topk=(1,)):
     """
     Computes the accuracy over the k top predictions for the specified values of k
-    
+
     Args
         output: logits or probs (num of batch, num of classes)
         target: (num of batch, 1) or (num of batch, )
         topk: list of returned k
-    
+
     refer: https://github.com/pytorch/examples/blob/master/imagenet/main.py
     """
 
@@ -278,7 +309,9 @@ def accuracy(output, target, topk=(1,)):
 
         # torch.topk(input, k, dim=None, largest=True, sorted=True, out=None)
         # return: value, index
-        _, pred = output.topk(k=maxk, dim=1, largest=True, sorted=True)  # pred: [num of batch, k]
+        _, pred = output.topk(
+            k=maxk, dim=1, largest=True, sorted=True
+        )  # pred: [num of batch, k]
         pred = pred.t()  # pred: [k, num of batch]
 
         # [1, num of batch] -> [k, num_of_batch] : bool
@@ -292,10 +325,10 @@ def accuracy(output, target, topk=(1,)):
         return res
 
 
-def ce_loss(logits, targets, use_hard_labels=True, reduction='none'):
+def ce_loss(logits, targets, use_hard_labels=True, reduction="none"):
     """
     wrapper for cross entropy loss in pytorch.
-    
+
     Args
         logits: logit values, shape=[Batch size, # of classes]
         targets: integer or vector, shape=[Batch size] or [Batch size, # of classes]
@@ -322,7 +355,7 @@ def ce_loss(logits, targets, use_hard_labels=True, reduction='none'):
 #        self.decay = decay
 #        self.shadow = {}
 #        self.backup = {}
-#    
+#
 #    def load(self, model):
 #        self.model.load_state_dict(model.state_dict())
 #
@@ -330,7 +363,7 @@ def ce_loss(logits, targets, use_hard_labels=True, reduction='none'):
 #        self.shadow = deepcopy(self.model.state_dict())
 #
 #
-#    def update(self): 
+#    def update(self):
 #        for name, param in self.model.state_dict().items():
 #            assert name in self.shadow
 #            new_avg = (1.0 - self.decay) * param + self.decay * self.shadow[name]
@@ -367,7 +400,9 @@ class EMA:
         for name, param in self.model.named_parameters():
             if param.requires_grad:
                 assert name in self.shadow
-                new_average = (1.0 - self.decay) * param.data + self.decay * self.shadow[name]
+                new_average = (
+                    1.0 - self.decay
+                ) * param.data + self.decay * self.shadow[name]
                 self.shadow[name] = new_average.clone()
 
     def apply_shadow(self):
@@ -396,14 +431,16 @@ class Bn_Controller:
         assert self.backup == {}
         for name, m in model.named_modules():
             if isinstance(m, nn.SyncBatchNorm) or isinstance(m, nn.BatchNorm2d):
-                self.backup[name + '.running_mean'] = m.running_mean.data.clone()
-                self.backup[name + '.running_var'] = m.running_var.data.clone()
-                self.backup[name + '.num_batches_tracked'] = m.num_batches_tracked.data.clone()
+                self.backup[name + ".running_mean"] = m.running_mean.data.clone()
+                self.backup[name + ".running_var"] = m.running_var.data.clone()
+                self.backup[
+                    name + ".num_batches_tracked"
+                ] = m.num_batches_tracked.data.clone()
 
     def unfreeze_bn(self, model):
         for name, m in model.named_modules():
             if isinstance(m, nn.SyncBatchNorm) or isinstance(m, nn.BatchNorm2d):
-                m.running_mean.data = self.backup[name + '.running_mean']
-                m.running_var.data = self.backup[name + '.running_var']
-                m.num_batches_tracked.data = self.backup[name + '.num_batches_tracked']
+                m.running_mean.data = self.backup[name + ".running_mean"]
+                m.running_var.data = self.backup[name + ".running_var"]
+                m.num_batches_tracked.data = self.backup[name + ".num_batches_tracked"]
         self.backup = {}

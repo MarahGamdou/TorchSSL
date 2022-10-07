@@ -12,5 +12,3 @@ class Get_Scalar:
 
     def __call__(self, iter):
         return self.value
-
-
